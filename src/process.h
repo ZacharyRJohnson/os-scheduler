@@ -9,13 +9,13 @@ typedef enum { CPU, IO } ProcessType;
 
 // Process struct
 typedef struct { 
-	int pid; 
-	int noi; 
-	int priority; 
-	int sleep_time; 
-	double sleep_prob; 
-	ProcessState state; 
-	ProcessType type; 
+    int pid; 
+    int noi; 
+    int priority; 
+    int sleep_time; 
+    double sleep_prob; 
+    ProcessState state; 
+    ProcessType type; 
 } Process;
 
 void cpu_proc(Process* proc);
