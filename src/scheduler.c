@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <unistd.h>
@@ -38,7 +39,7 @@ void priority_round_robin(int msgid) {
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
     key_t key;
     int msgid;
     key = ftok("./temp.txt", 65);
@@ -47,7 +48,25 @@ int main() {
     }
 
     msgid = msgget(key, 0666 | IPC_CREAT);
-    round_robin(msgid);
+    if (argc == 2) {
+        if (strcmp(argv[1], "PR") == 0) {
+            priority_round_robin(msgid);
+        }
+        else if (strcmp(argv[1], "RR") == 0){
+            round_robin(msgid);
+        }
+        else {
+            fprintf(stderr, "Argument not recognized. Input 'PR' or 'RR' to specify scheduling algorithm, or nothing for round robin.\n");
+            return 1;
+        }
+    }
+    else if (argc == 1) {
+        round_robin(msgid);
+    }
+    else {
+        fprintf(stderr, "Argument not recognized. Input 'PR' or 'RR' to specify scheduling algorithm, or nothing for round robin.\n");
+        return 1;
+    }
 
     msgctl(msgid, IPC_RMID, NULL);
 }
