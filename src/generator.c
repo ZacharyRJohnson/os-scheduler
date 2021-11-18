@@ -5,10 +5,26 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-void generate(int num_procs, int t, int nois[num_procs], int priorities[num_procs], double sleep_probs[num_procs], int sleep_times[num_procs]) {
+void generate() {    
+    int num_procs = 4;
+    int cpu_priority = 2;  
+    int cpu_noi = 10000;
+    int cpu_sleep_time = 1;
+    double cpu_sleep_prob = 0.3;
+    int io_priority = 1;
+    int io_noi = 4000;
+    int io_sleep_time = 3;
+    double io_sleep_prob = 0.7;
+    int t = 1;
+
     Process processes[num_procs];
     for (int i = 0; i < num_procs; i++) {
+        sleep(1);
         int pid = fork();
         if (pid == -1) {
             fprintf(stderr, "Error while forking process: %s", strerror(errno));
@@ -20,38 +36,38 @@ void generate(int num_procs, int t, int nois[num_procs], int priorities[num_proc
             if (i % 2 == 0) {
                 Process proc = {
                     child_id,
-                    nois[i],
-                    priorities[i],
-                    sleep_times[i],
-                    sleep_probs[i],
+                    cpu_noi,
+                    cpu_priority,
+                    cpu_sleep_time,
+                    cpu_sleep_prob,
                     READY,
                     CPU
                 };
                 cpu_proc(&proc);
-                return;
+                exit(0);
             }
             else {
                 Process proc = {
                     child_id,
-                    nois[i],
-                    priorities[i],
-                    sleep_times[i],
-                    sleep_probs[i],
+                    io_noi,
+                    io_priority,
+                    io_sleep_time,
+                    io_sleep_prob,
                     READY,
                     IO
                 };
                 io_proc(&proc);
-                return;
+                exit(0);
             }
         }
         else {
             if (i % 2 == 0) {
                 Process proc = {
                     pid,
-                    nois[i],
-                    priorities[i],
-                    sleep_times[i],
-                    sleep_probs[i],
+                    cpu_noi,
+                    cpu_priority,
+                    cpu_sleep_time,
+                    cpu_sleep_prob,
                     READY,
                     CPU
                 };
@@ -60,10 +76,10 @@ void generate(int num_procs, int t, int nois[num_procs], int priorities[num_proc
             else {
                 Process proc = {
                     pid,
-                    nois[i],
-                    priorities[i],
-                    sleep_times[i],
-                    sleep_probs[i],
+                    io_noi,
+                    io_priority,
+                    io_sleep_time,
+                    io_sleep_prob,
                     READY,
                     IO
                 };
@@ -71,12 +87,31 @@ void generate(int num_procs, int t, int nois[num_procs], int priorities[num_proc
             }
         }
     }
+
+    int status = 0;
+    pid_t wpid;
+    while ((wpid = wait(&status)) > 0);
 }
 
+
+struct mesg_buffer {
+    long priority;
+    pid_t pid;
+} message;
+
 int main() {
-    int nois[4] = {5, 18, 9, 24};
-    int priorities[4] = {1,2,3,4};
-    double sleep_probs[4] = {.5, .1, .8, .65};
-    int sleep_times[4] = {3, 2, 5, 1};
-    generate(4, 5, nois, priorities, sleep_probs, sleep_times);
+    generate();
+
+    key_t key;
+    int msgid;
+    key = ftok("./temp.txt", 65);
+    if (key == -1) {
+        printf("ERROR");
+    }
+
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    message.priority = 1;
+  
+    // display the message
+    printf("All processes completed\n");
 }

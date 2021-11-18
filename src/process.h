@@ -14,6 +14,7 @@ typedef struct {
     int priority; 
     int sleep_time; 
     double sleep_prob; 
+    int msgid;
     ProcessState state; 
     ProcessType type; 
 } Process;
