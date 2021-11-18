@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 #include "process.h"
 #include <sys/ipc.h>
 #include <sys/msg.h>
@@ -25,27 +26,43 @@ int send_message(struct mesg_buffer thing) {
 	return a;
 }
 
+Process* current;
+
+void cpu_handler() {
+	printf("Working on Process:  %d %d \n", current->pid, current->noi);
+	current->noi -= 3;
+	sleep(2);
+
+	struct mesg_buffer thing;
+	thing.pid = current->pid;
+	thing.priority = current->priority;
+	if (current->noi > 0) {
+		send_message(thing);
+	}
+}
+
 void cpu_proc(Process* proc) {
+	current = proc;
+	signal(SIGCONT, cpu_handler);
+
 	struct mesg_buffer thing;
 	thing.pid = proc->pid;
 	thing.priority = proc->priority;
+	printf("CPU BOUND %d %d \n", current->pid, current->noi);
 	int a = send_message(thing);
 
-	printf("CPU BOUND %d %d \n", proc->priority, a);
-
-	for (int i = 0; i < proc->noi; i++) {
-		;
+	while (current->noi > 0) {
+		pause();
 	}
 
-	// pause();
-	// a = msgsnd(msgid, &thing, sizeof(thing), 0);
-	// printf("CPU BOUND %d %d \n", proc->pid, a);
+	printf("Completed %d\n", current->pid);
 }
 
 void io_proc(Process* proc) {
+	// exit(0);
 	srand(time(0));
+	// printf("%d, \n", proc->pid);
 	for (int i = 0; i < proc->noi; i++) {
-		// printf("%d, loop iteration %d\n", proc->pid, i);
 		double prob = ((double) rand() / (RAND_MAX)) + 1;
 		if (prob < proc->sleep_prob) {
 			// Send IO signal to scheduler

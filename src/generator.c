@@ -101,18 +101,9 @@ int main() {
         printf("ERROR");
     }
 
-
     msgid = msgget(key, 0666 | IPC_CREAT);
-
     message.priority = 1;
-
-    printf("Write Data : ");
-    message.pid = getpid();
-    // fgets(message.mesg_text,10,stdin);
-  
-    // msgsnd to send message
-    msgsnd(msgid, &message, sizeof(message), 0);
   
     // display the message
-    printf("Data send is : %d \n", message.pid);
+    printf("All processes completed\n");
 }

@@ -11,6 +11,19 @@ struct mesg_buffer {
 } message;
 
 
+void round_robin(int msgid) {
+    // Schedule infinitly
+    while (1) {
+        msgrcv(msgid, &message, sizeof(message), 0, 0);
+        printf("Waking up: %d \n", 
+                        message.pid);
+
+        kill( message.pid, SIGCONT);
+        sleep(2);
+    }
+}
+
+
 int main() {
     key_t key;
     int msgid;
@@ -20,16 +33,7 @@ int main() {
     }
 
     msgid = msgget(key, 0666 | IPC_CREAT);
-
-    while (1) {
-        msgrcv(msgid, &message, sizeof(message), 3, 0);
-        printf("Data Received is : %d \n", 
-                        message.pid);
-        // sleep(1);
-        // kill( message.pid, SIGUSR1);
-    }
+    round_robin(msgid);
 
     msgctl(msgid, IPC_RMID, NULL);
-    // kill( 14185, SIGUSR1);
-    // kill( 14187, SIGUSR1);
 }
