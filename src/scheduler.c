@@ -4,6 +4,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <unistd.h>
+#include <stdlib.h>
   
 // structure for message queue
 struct mesg_buffer {
@@ -12,15 +13,63 @@ struct mesg_buffer {
 } message;
 
 
+typedef struct node {
+    struct node* next;
+    struct mesg_buffer* val;
+} node;
+
 void round_robin(int msgid) {
+    struct node* root = NULL;
+    struct node* last = NULL;
+
     // Schedule infinitly
     while (1) {
-        msgrcv(msgid, &message, sizeof(message), 0, 0);
-        printf("Waking up: %d \n", 
-                        message.pid);
+        struct msqid_ds buf;
+        int num_messages = 0;
 
-        kill( message.pid, SIGCONT);
-        sleep(2);
+        do {
+            msgctl(msgid, IPC_STAT, &buf);
+            num_messages = buf.msg_qnum;
+            if (num_messages > 0) {
+                msgrcv(msgid, &message, sizeof(message), 0, 0);
+                printf("LOADED %d \n", message.pid);
+                struct mesg_buffer* val = malloc(sizeof(struct mesg_buffer));
+                val->pid = message.pid;
+                val->priority = message.priority;
+                struct node* just = malloc(sizeof(struct node));
+                just->val = val;
+                just->next = NULL;
+                if (last != NULL) {
+                    last->next = just;
+                    last = just;
+                } else {
+                    root = just;
+                    last = just;
+                }
+            }
+        } while (num_messages - 1 > 0);
+
+
+        if (root != NULL) {
+            printf("Waking up: %d \n", 
+                            root->val->pid);
+
+            struct node* temp = root;
+            if (root == last) {
+                last = NULL;
+            }
+
+            int c_pid = root->val->pid;
+            root = root->next;
+
+            free(temp->val);
+            free(temp);
+            
+            kill( c_pid, SIGCONT);
+            
+            sleep(1);
+        }
+        sleep(1);
     }
 }
 
