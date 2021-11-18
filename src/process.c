@@ -71,7 +71,7 @@ void io_handler() {
 	// printf("%d, \n", proc->pid);
 	srand(time(0));
 	for (int i = 0; i < 1000 && 0 < current->noi; i++) {
-		double prob = ((double) rand() / (RAND_MAX)) + 1;
+		double prob = (double)rand() / (double)RAND_MAX;
 		if (prob < current->sleep_prob) {
 			// Send IO signal to scheduler
 			// Stops progress and sleeps for a time
