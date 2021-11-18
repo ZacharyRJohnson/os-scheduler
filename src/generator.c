@@ -5,10 +5,13 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 
 void generate(int num_procs, int t, int nois[num_procs], int priorities[num_procs], double sleep_probs[num_procs], int sleep_times[num_procs]) {
     Process processes[num_procs];
     for (int i = 0; i < num_procs; i++) {
+        sleep(1);
         int pid = fork();
         if (pid == -1) {
             fprintf(stderr, "Error while forking process: %s", strerror(errno));
@@ -28,7 +31,7 @@ void generate(int num_procs, int t, int nois[num_procs], int priorities[num_proc
                     CPU
                 };
                 cpu_proc(&proc);
-                return;
+                exit(0);
             }
             else {
                 Process proc = {
@@ -41,7 +44,7 @@ void generate(int num_procs, int t, int nois[num_procs], int priorities[num_proc
                     IO
                 };
                 io_proc(&proc);
-                return;
+                exit(0);
             }
         }
         else {
@@ -71,7 +74,18 @@ void generate(int num_procs, int t, int nois[num_procs], int priorities[num_proc
             }
         }
     }
+
+    int status = 0;
+    pid_t wpid;
+    while ((wpid = wait(&status)) > 0);
 }
+
+
+struct mesg_buffer {
+    long priority;
+    pid_t pid;
+} message;
+
 
 int main() {
     int nois[4] = {5, 18, 9, 24};
@@ -79,4 +93,26 @@ int main() {
     double sleep_probs[4] = {.5, .1, .8, .65};
     int sleep_times[4] = {3, 2, 5, 1};
     generate(4, 5, nois, priorities, sleep_probs, sleep_times);
+
+    key_t key;
+    int msgid;
+    key = ftok("./temp.txt", 65);
+    if (key == -1) {
+        printf("ERROR");
+    }
+
+
+    msgid = msgget(key, 0666 | IPC_CREAT);
+
+    message.priority = 1;
+
+    printf("Write Data : ");
+    message.pid = getpid();
+    // fgets(message.mesg_text,10,stdin);
+  
+    // msgsnd to send message
+    msgsnd(msgid, &message, sizeof(message), 0);
+  
+    // display the message
+    printf("Data send is : %d \n", message.pid);
 }
