@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
         }
     }
     else if (argc == 1) {
-        priority_round_robin(msgid);
+        round_robin(msgid);
     }
     else {
         fprintf(stderr, "Argument not recognized. Input 'PR' or 'RR' to specify scheduling algorithm, or nothing for round robin.\n");

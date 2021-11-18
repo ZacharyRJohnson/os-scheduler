@@ -29,7 +29,7 @@ Process* current;
 
 void cpu_handler() {
 	printf("Working on Process CPU:  %d %d \n", current->pid, current->noi);
-	current->noi -= 3;
+	current->noi -= 1000;
 	sleep(2);
 
 	struct mesg_buffer thing;
@@ -70,7 +70,7 @@ void io_handler() {
 
 	// printf("%d, \n", proc->pid);
 	srand(time(0));
-	for (int i = 0; i < 3 && 0 < current->noi; i++) {
+	for (int i = 0; i < 1000 && 0 < current->noi; i++) {
 		double prob = ((double) rand() / (RAND_MAX)) + 1;
 		if (prob < current->sleep_prob) {
 			// Send IO signal to scheduler
