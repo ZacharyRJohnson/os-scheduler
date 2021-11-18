@@ -76,14 +76,61 @@ void round_robin(int msgid) {
 
 
 void priority_round_robin(int msgid) {
+    // Each priority
+    struct node* root[4] = {NULL,NULL,NULL,NULL};
+    struct node* last[4] = {NULL,NULL,NULL,NULL};
+
     // Schedule infinitly
     while (1) {
-        msgrcv(msgid, &message, sizeof(message), 0, 0);
-        printf("Waking up: %d \n", 
-                        message.pid);
+        struct msqid_ds buf;
+        int num_messages = 0;
 
-        kill( message.pid, SIGCONT);
-        sleep(2);
+        do {
+            msgctl(msgid, IPC_STAT, &buf);
+            num_messages = buf.msg_qnum;
+            if (num_messages > 0) {
+                msgrcv(msgid, &message, sizeof(message), 0, 0);
+                printf("LOADED %d \n", message.pid);
+                struct mesg_buffer* val = malloc(sizeof(struct mesg_buffer));
+                val->pid = message.pid;
+                val->priority = message.priority;
+                struct node* just = malloc(sizeof(struct node));
+                just->val = val;
+                just->next = NULL;
+                if (last[message.priority - 1] != NULL) {
+                    last[message.priority - 1]->next = just;
+                    last[message.priority - 1] = just;
+                } else {
+                    root[message.priority - 1] = just;
+                    last[message.priority - 1] = just;
+                }
+            }
+        } while (num_messages - 1 > 0);
+
+
+        for (int p_idx = 0; p_idx < 4; p_idx++) {
+            if (root[p_idx] != NULL) {
+                printf("Waking up: %d \n", 
+                                root[p_idx]->val->pid);
+
+                struct node* temp = root[p_idx];
+                if (root[p_idx] == last[p_idx]) {
+                    last[p_idx] = NULL;
+                }
+
+                int c_pid = root[p_idx]->val->pid;
+                root[p_idx] = root[p_idx]->next;
+
+                free(temp->val);
+                free(temp);
+                
+                kill( c_pid, SIGCONT);
+                
+                sleep(1);
+                break;
+            }
+        }
+        sleep(1);
     }
 }
 
@@ -110,7 +157,7 @@ int main(int argc, char* argv[]) {
         }
     }
     else if (argc == 1) {
-        round_robin(msgid);
+        priority_round_robin(msgid);
     }
     else {
         fprintf(stderr, "Argument not recognized. Input 'PR' or 'RR' to specify scheduling algorithm, or nothing for round robin.\n");
