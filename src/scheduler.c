@@ -24,6 +24,20 @@ void round_robin(int msgid) {
 }
 
 
+
+void priority_round_robin(int msgid) {
+    // Schedule infinitly
+    while (1) {
+        msgrcv(msgid, &message, sizeof(message), 0, 0);
+        printf("Waking up: %d \n", 
+                        message.pid);
+
+        kill( message.pid, SIGCONT);
+        sleep(2);
+    }
+}
+
+
 int main() {
     key_t key;
     int msgid;

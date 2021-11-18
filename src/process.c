@@ -21,7 +21,6 @@ int send_message(struct mesg_buffer thing) {
     }
 
     msgid = msgget(key, 0666 | IPC_CREAT);
-
 	int a = msgsnd(msgid, &thing, sizeof(thing), 0);
 	return a;
 }
@@ -29,7 +28,7 @@ int send_message(struct mesg_buffer thing) {
 Process* current;
 
 void cpu_handler() {
-	printf("Working on Process:  %d %d \n", current->pid, current->noi);
+	printf("Working on Process CPU:  %d %d \n", current->pid, current->noi);
 	current->noi -= 3;
 	sleep(2);
 
@@ -58,18 +57,52 @@ void cpu_proc(Process* proc) {
 	printf("Completed %d\n", current->pid);
 }
 
-void io_proc(Process* proc) {
-	// exit(0);
-	srand(time(0));
+
+
+
+void io_handler() {
+	printf("Working on Process IO:  %d %d \n", current->pid, current->noi);
+	
+
+	struct mesg_buffer thing;
+	thing.pid = current->pid;
+	thing.priority = current->priority;
+
 	// printf("%d, \n", proc->pid);
-	for (int i = 0; i < proc->noi; i++) {
+	srand(time(0));
+	for (int i = 0; i < 3 && 0 < current->noi; i++) {
 		double prob = ((double) rand() / (RAND_MAX)) + 1;
-		if (prob < proc->sleep_prob) {
+		if (prob < current->sleep_prob) {
 			// Send IO signal to scheduler
-			// printf("PID: %d Going for IO\n", proc->pid);
-			sleep(proc->sleep_time);
-			// printf("PID: %d Back from IO\n", proc->pid);	
-			// Inform schedular via MSG Q
-		}	
+			// Stops progress and sleeps for a time
+			printf("PID: %d Going for IO\n", current->pid);
+			sleep(current->sleep_time);
+			break;
+		}
+		current->noi -= 1;
 	}
+
+	// Alert scheduler we want to work
+	if (current->noi > 0) {
+	sleep(2);
+		send_message(thing);
+	}
+}
+
+
+void io_proc(Process* proc) {
+	current = proc;
+	signal(SIGCONT, io_handler);
+
+	struct mesg_buffer thing;
+	thing.pid = proc->pid;
+	thing.priority = proc->priority;
+	printf("IO BOUND %d %d \n", current->pid, current->noi);
+	int a = send_message(thing);
+
+	while (current->noi > 0) {
+		pause();
+	}
+
+	printf("Completed %d\n", current->pid);
 }
